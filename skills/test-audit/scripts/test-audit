@@ -1,0 +1,59 @@
+#!/bin/sh
+# test-audit launcher. Finds a Python >= 3.9 and runs the bundled,
+# standard-library-only test_audit package in isolated mode:
+#   -I  ignore PYTHON* env vars, user site-packages, and never put the cwd or
+#       the user's repo on sys.path (no shadowing of stdlib or our modules)
+#   -S  skip site-packages entirely (the package is stdlib-only)
+#   -B  never write __pycache__ (the skill may live inside the target repo)
+# Only this script's own directory is put on sys.path, at index 0.
+set -u
+
+script=$0
+while [ -h "$script" ]; do
+  link=$(readlink "$script")
+  case $link in
+    /*) script=$link ;;
+    *) script=$(dirname -- "$script")/$link ;;
+  esac
+done
+here=$(CDPATH='' cd -P -- "$(dirname -- "$script")" && pwd -P) || {
+  echo "test-audit: cannot resolve launcher directory" >&2
+  exit 2
+}
+
+boot='import sys; sys.path.insert(0, sys.argv.pop(1)); from test_audit.cli import main; sys.exit(main(sys.argv[1:]))'
+check='import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)'
+
+usable() {
+  "$@" -I -S -B -c "$check" >/dev/null 2>&1
+}
+
+if [ -n "${TEST_AUDIT_PYTHON:-}" ]; then
+  if usable "$TEST_AUDIT_PYTHON"; then
+    exec "$TEST_AUDIT_PYTHON" -I -S -B -c "$boot" "$here" "$@"
+  fi
+  echo "test-audit: TEST_AUDIT_PYTHON=$TEST_AUDIT_PYTHON is not a working Python >= 3.9" >&2
+  exit 2
+fi
+
+for py in python3 python; do
+  if command -v "$py" >/dev/null 2>&1 && usable "$py"; then
+    exec "$py" -I -S -B -c "$boot" "$here" "$@"
+  fi
+done
+
+if command -v uv >/dev/null 2>&1; then
+  if usable uv run --quiet --no-project --no-config --python ">=3.9" python; then
+    exec uv run --quiet --no-project --no-config --python ">=3.9" python -I -S -B -c "$boot" "$here" "$@"
+  fi
+fi
+
+cat >&2 <<'EOF'
+test-audit: needs Python >= 3.9 and found none.
+Tried: python3, python, and `uv run --no-project --python ">=3.9" python`.
+Install one of:
+  - Python 3.9+ (python.org, Homebrew `brew install python`, apt `python3`), or
+  - uv (https://docs.astral.sh/uv/), which can fetch a Python on demand.
+Or point TEST_AUDIT_PYTHON at an interpreter.
+EOF
+exit 2

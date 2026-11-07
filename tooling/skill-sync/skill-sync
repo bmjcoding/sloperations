@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+"""Launcher: run from anywhere; needs only Python 3.9+ and git."""
+import os
+import sys
+
+if sys.version_info < (3, 9):
+    sys.exit("skill-sync needs Python 3.9 or newer")
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+sys.dont_write_bytecode = True
+
+from skill_sync.cli import main  # noqa: E402
+
+sys.exit(main())

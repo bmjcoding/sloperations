@@ -1,0 +1,52 @@
+{
+  "$comment": "Fork definition for tooling/skill-sync. No rules are needed today; the tripwire stops an update that adds OpenClaw wording beyond Crabbox's real distribution coordinates.",
+  "name": "crabbox",
+  "mode": "rules",
+  "description": "Crabbox remote-validation skills, vendored unchanged.",
+  "upstream": {
+    "repo": "https://github.com/openclaw/crabbox.git",
+    "branch": "main",
+    "sha": "cc85831dfe9ff647e163c1703e72404c2dabf1d0",
+    "require_signed": true
+  },
+  "paths": [
+    { "upstream": "skills/crabbox", "output": "skills/crabbox" },
+    { "upstream": "skills/crabbox-quickstart", "output": "skills/crabbox-quickstart" }
+  ],
+  "license": "LICENSE",
+  "support": [
+    "scripts/check-agent-skills.mjs",
+    ".agents/skills/crabbox/SKILL.md",
+    ".agents/skills/crabbox-quickstart/SKILL.md",
+    "internal/cli/init.go"
+  ],
+  "rules": [],
+  "tripwire": {
+    "terms": ["openclaw", "clawsweeper"],
+    "ignore_case": true,
+    "allow": [
+      {
+        "paths": ["skills/crabbox/LICENSE", "skills/crabbox-quickstart/LICENSE"],
+        "reason": "Upstream's MIT license names its copyright holder; it must be kept verbatim."
+      },
+      {
+        "paths": ["skills/crabbox/**", "skills/crabbox-quickstart/**"],
+        "literal": "openclaw/tap/crabbox",
+        "reason": "The real Homebrew tap Crabbox ships through (brew install openclaw/tap/crabbox). Rewriting it would break the install instructions."
+      },
+      {
+        "paths": ["skills/crabbox/**", "skills/crabbox-quickstart/**"],
+        "literal": "github.com/openclaw/crabbox",
+        "reason": "Crabbox's real release downloads (github.com/openclaw/crabbox/releases), the install fallback."
+      }
+    ]
+  },
+  "links": true,
+  "verify": [
+    {
+      "name": "upstream-skill-check",
+      "argv": ["node", "scripts/check-agent-skills.mjs"],
+      "timeout": 120
+    }
+  ]
+}

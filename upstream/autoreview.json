@@ -1,0 +1,285 @@
+{
+  "$comment": "Fork definition for tooling/skill-sync. Paths are upstream-relative except paths[].output. Anchors and replacements are literal; a list of strings is joined with newlines.",
+  "name": "autoreview",
+  "mode": "rules",
+  "description": "Harness-agnostic structured code review: upstream's autoreview skill without the OpenClaw engine or ClawSweeper hosted-review guidance.",
+  "upstream": {
+    "repo": "https://github.com/openclaw/agent-skills.git",
+    "branch": "main",
+    "sha": "02f3158379a7ec355d73c92bf97d432fafb2adc9",
+    "require_signed": true
+  },
+  "paths": [
+    { "upstream": "skills/autoreview", "output": "skills/autoreview" }
+  ],
+  "license": "LICENSE",
+  "support": [
+    "scripts/check-skills",
+    "scripts/install-skills",
+    "scripts/windows_test_process.py"
+  ],
+  "features": {
+    "helper-help-text": {
+      "description": "Hide the OpenClaw-only flags from the helper's --help. If it drifts, --help still lists them, but the engine stays refused."
+    }
+  },
+  "delete": [
+    {
+      "id": "delete/openclaw-reference",
+      "path": "skills/autoreview/references/openclaw.md",
+      "reason": "Documents only the OpenClaw engine and its bound sandbox integration, which this fork refuses."
+    },
+    {
+      "id": "delete/repository-entrypoint",
+      "path": "skills/autoreview/references/repository-entrypoint.md",
+      "reason": "A stub for OpenClaw consumer repositories: it sends readers to the canonical openclaw/agent-skills install and forbids vendored copies, which is the opposite of this repository's setup."
+    },
+    {
+      "id": "delete/native-handoff-tests",
+      "path": "skills/autoreview/tests/test_native_handoff.py",
+      "reason": "Covers only --native-handoff, which requires --engine openclaw."
+    },
+    {
+      "id": "delete/openclaw-exec-tests",
+      "path": "skills/autoreview/tests/test_openclaw_exec.py",
+      "reason": "Covers only the OpenClaw engine's direct execution."
+    }
+  ],
+  "rules": [
+    {
+      "id": "skill/no-hosted-review-requests",
+      "kind": "remove-section",
+      "file": "skills/autoreview/SKILL.md",
+      "anchor": "## Hosted review requests",
+      "reason": "The whole section governs requesting ClawSweeper's hosted bot review."
+    },
+    {
+      "id": "skill/install-from-vendored-copy",
+      "file": "skills/autoreview/SKILL.md",
+      "anchor": [
+        "Install from the canonical checkout: `python3 scripts/install-skills autoreview`.",
+        "The default links to this source. Honor custom `--target` paths; here use",
+        "`skills/autoreview/scripts/autoreview`."
+      ],
+      "replacement": [
+        "Install by linking or copying this repository's vendored `skills/autoreview`",
+        "folder to `~/.agents/skills/autoreview`; honor other install locations. Inside",
+        "this repository, use `skills/autoreview/scripts/autoreview`."
+      ],
+      "reason": "Upstream installs from its own checkout with scripts/install-skills, which isn't vendored; point at this repository's copy."
+    },
+    {
+      "id": "skill/copied-installs",
+      "file": "skills/autoreview/SKILL.md",
+      "anchor": [
+        "Consumers keep the [shared-skill entrypoint](references/repository-entrypoint.md)",
+        "and local review requirements. Update shared behavior here after active reviews finish.",
+        "Copy-mode installs need",
+        "`scripts/install-skills --mode copy --force autoreview` after source updates;",
+        "review commands never download or update themselves."
+      ],
+      "replacement": [
+        "Copied installs need a fresh copy after `skills/autoreview` updates;",
+        "review commands never download or update themselves."
+      ],
+      "reason": "Links the deleted OpenClaw consumer entrypoint and upstream's install-skills script."
+    },
+    {
+      "id": "skill/no-openclaw-engine",
+      "file": "skills/autoreview/SKILL.md",
+      "anchor": [
+        "- For the OpenClaw engine, use [restricted agent execution](references/openclaw.md):",
+        "  direct CLI on an authenticated host, or the bound `autoreview` tool inside an",
+        "  OpenClaw sandbox. With no explicit route and no eligible default CLI, use the",
+        "  bound tool when available. Supply the target and explicitly requested overrides;",
+        "  the helper owns review defaults, and native OpenClaw supplies configuration and",
+        "  authentication. The bound integration admits the model under current caller",
+        "  permissions before execution and reports the effective choice.",
+        ""
+      ],
+      "replacement": "",
+      "reason": "Engine bullet for OpenClaw, which this fork refuses (see helper/refuse-openclaw-engine)."
+    },
+    {
+      "id": "skill/copilot-route-wording",
+      "file": "skills/autoreview/SKILL.md",
+      "anchor": [
+        "not a new helper engine or the",
+        "OpenClaw execution integration."
+      ],
+      "replacement": "not a new helper engine.",
+      "reason": "Drops the comparison with the removed OpenClaw integration; the rest of the Copilot route is unchanged."
+    },
+    {
+      "id": "skill/scanner-policy-link",
+      "file": "skills/autoreview/SKILL.md",
+      "anchor": "decision; see [#240](https://github.com/openclaw/agent-skills/pull/240).",
+      "replacement": "decision.",
+      "reason": "Upstream pull-request link; the policy itself stays."
+    },
+    {
+      "id": "agents/vendored-copy-notes",
+      "file": "skills/autoreview/AGENTS.md",
+      "anchor": [
+        "- Canonical source: `openclaw/agent-skills`, under `skills/autoreview`.",
+        "- Make and validate shared changes here, then update the shared installation.",
+        "- Downstream repositories keep only the Markdown entrypoint from `references/repository-entrypoint.md`. Do not vendor this implementation, its tests, or its full instructions.",
+        "- Keep repository-specific review requirements in that repository's instructions. Shared behavior and fixes belong upstream here."
+      ],
+      "replacement": [
+        "- This folder is generated by `tooling/skill-sync` from a pinned upstream commit; see `UPSTREAM.md`.",
+        "- Don't hand-edit it: `tooling/skill-sync/skill-sync verify` fails when it differs from what the pin and rules produce.",
+        "- To change it, edit `upstream/autoreview.json` and run `tooling/skill-sync/skill-sync sync autoreview`."
+      ],
+      "reason": "Upstream's maintainer notes forbid vendoring and point at the canonical OpenClaw repository; agents editing this copy need the regeneration rules instead."
+    },
+    {
+      "id": "engines/no-openclaw-section",
+      "kind": "remove-section",
+      "file": "skills/autoreview/references/engines.md",
+      "anchor": "## OpenClaw",
+      "reason": "Describes only the refused OpenClaw engine."
+    },
+    {
+      "id": "diagnostics/no-openclaw-status",
+      "file": "skills/autoreview/references/diagnostics-and-results.md",
+      "anchor": [
+        "- Status contains no logs, prompts or findings. OpenClaw status may include",
+        "  `effective_models`, the unique provider/model identities observed in validated",
+        "  terminal responses; rejected or missing identities are not recorded. Other",
+        "  engines' status fields are unchanged."
+      ],
+      "replacement": "- Status contains no logs, prompts or findings.",
+      "reason": "effective_models is recorded only for the refused OpenClaw engine."
+    },
+    {
+      "id": "diagnostics/preflight-marker-wording",
+      "file": "skills/autoreview/references/diagnostics-and-results.md",
+      "anchor": [
+        "writes one raw",
+        "`openclaw-preflight:v1` comment, at most"
+      ],
+      "replacement": [
+        "writes one raw",
+        "versioned preflight comment, at most"
+      ],
+      "reason": "Names upstream's marker string. The helper still emits it unchanged (kept so the helper stays byte-identical upstream outside one edit); the docs describe it generically."
+    },
+    {
+      "id": "helper/refuse-openclaw-engine",
+      "file": "skills/autoreview/scripts/autoreview",
+      "anchor": "ENGINES = (\"codex\", \"claude\", \"amp\", \"pi\", \"kimi\", \"openclaw\")",
+      "replacement": "ENGINES = (\"codex\", \"claude\", \"amp\", \"pi\", \"kimi\")",
+      "reason": "One-line refusal: argparse rejects --engine openclaw, parse_args rejects AUTOREVIEW_ENGINE=openclaw, --model/--thinking reject openclaw=..., and --native-handoff already requires that engine. The OpenClaw code paths stay as unreachable dead code so upstream patches keep applying."
+    },
+    {
+      "id": "helper/hide-native-handoff-help",
+      "type": "feature",
+      "feature": "helper-help-text",
+      "file": "skills/autoreview/scripts/autoreview",
+      "anchor": "help=\"Fresh private directory outside the repo for bound OpenClaw execution. Requires --engine openclaw; see references/openclaw.md.\"",
+      "replacement": "help=argparse.SUPPRESS",
+      "reason": "The flag only works with the refused engine and its help names the deleted reference."
+    },
+    {
+      "id": "helper/hide-openclaw-bin-help",
+      "type": "feature",
+      "feature": "helper-help-text",
+      "file": "skills/autoreview/scripts/autoreview",
+      "anchor": "help=\"Trusted host OpenClaw executable; never selected by a sandbox request.\"",
+      "replacement": "help=argparse.SUPPRESS",
+      "reason": "OpenClaw-only flag; still accepted, as upstream accepts --kimi-bin for its refused engine."
+    },
+    {
+      "id": "helper/hide-openclaw-config-help",
+      "type": "feature",
+      "feature": "helper-help-text",
+      "file": "skills/autoreview/scripts/autoreview",
+      "anchor": "help=\"Optional external operator config for direct OpenClaw execution. Omit to inherit normal native configuration and authentication.\"",
+      "replacement": "help=argparse.SUPPRESS",
+      "reason": "OpenClaw-only flag; using it without --engine openclaw is already an error."
+    },
+    {
+      "id": "verify/test-runner-drops-removed-modules",
+      "file": "scripts/check-skills",
+      "anchor": [
+        "        \"skills.autoreview.tests.test_native_handoff\",",
+        "        \"skills.autoreview.tests.test_openclaw_exec\",",
+        ""
+      ],
+      "replacement": "",
+      "reason": "Upstream's test runner lists test modules by name; drop the two deleted ones. check-skills is a support file used only by verify, never vendored."
+    },
+    {
+      "id": "verify/test-runner-skips-codex-sandbox",
+      "file": "scripts/check-skills",
+      "anchor": [
+        "        \"skills.autoreview.tests.test_codex_sandbox\",",
+        ""
+      ],
+      "replacement": "",
+      "reason": "test_codex_sandbox drives the real Codex CLI's macOS sandbox, which can't nest inside verify's own sandbox, and it only runs where codex happens to be on PATH. Upstream runs it in a separate macOS job; dropping it keeps verify deterministic. The test file stays vendored."
+    }
+  ],
+  "tripwire": {
+    "terms": ["openclaw", "clawsweeper"],
+    "ignore_case": true,
+    "allow": [
+      {
+        "paths": ["skills/autoreview/LICENSE"],
+        "reason": "Upstream's MIT license names its copyright holder; it must be kept verbatim."
+      },
+      {
+        "paths": ["skills/autoreview/scripts/autoreview"],
+        "reason": "Helper-internal dead code: the OpenClaw engine's implementation, environment allowlists and preflight marker stay byte-identical to upstream so future upstream fixes apply cleanly. It is unreachable because helper/refuse-openclaw-engine removes the engine from ENGINES; helper-help-text hides its flags from --help."
+      },
+      {
+        "paths": ["skills/autoreview/scripts/autoreview_test.py"],
+        "literal": "openclaw-preflight:v1",
+        "reason": "Upstream's test asserts the helper's unchanged preflight marker. Tests run only in verify."
+      },
+      {
+        "paths": ["skills/autoreview/tests/test_autoreview_hardening.py"],
+        "literal": "openclaw-secret-scanning-maintainer",
+        "reason": "A fixture path in a sensitive-path test. Tests run only in verify."
+      },
+      {
+        "paths": ["skills/autoreview/tests/test_autoreview_hardening.py"],
+        "literal": "not_openclaw_provenance",
+        "reason": "Part of an upstream test name covering proxy URL handling, which applies to every engine."
+      },
+      {
+        "paths": ["skills/autoreview/tests/test_autoreview_hardening.py"],
+        "literal": "\"openclaw\", \"review-bot\"",
+        "reason": "A sample username in a credential-redaction fixture."
+      }
+    ]
+  },
+  "links": true,
+  "verify_python": ">=3.10",
+  "verify_shared_tmp": ["autoreview-scratch-"],
+  "verify": [
+    {
+      "name": "bash-syntax",
+      "argv": ["bash", "-n", "skills/autoreview/scripts/test-review-harness"]
+    },
+    {
+      "name": "venv",
+      "argv": ["{python}", "-m", "venv", ".verify-venv"]
+    },
+    {
+      "name": "pillow",
+      "argv": [".verify-venv/bin/python", "-m", "pip", "install", "--disable-pip-version-check", "--no-input", "--quiet", "--only-binary=:all:", "Pillow==12.3.0; python_version >= '3.10'", "Pillow==11.3.0; python_version < '3.10'"],
+      "timeout": 600
+    },
+    {
+      "name": "compile",
+      "argv": [".verify-venv/bin/python", "-m", "py_compile", "skills/autoreview/scripts/autoreview", "skills/autoreview/scripts/autoreview_test.py", "skills/autoreview/scripts/test-review-harness.py"]
+    },
+    {
+      "name": "upstream-tests",
+      "argv": [".verify-venv/bin/python", "scripts/check-skills", "--group", "all", "--tests-only"],
+      "timeout": 3600
+    }
+  ]
+}

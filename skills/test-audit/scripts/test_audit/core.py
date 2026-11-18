@@ -10,8 +10,6 @@ import sys
 import threading
 import time
 
-ENTER_ROOT = 'cd -- "$1" && shift && exec "$@"'
-_PLACEHOLDER = re.compile(r"\{(cmd|root)\}")
 
 EXIT_OK = 0
 EXIT_FINDINGS = 1
@@ -595,24 +593,15 @@ def substitute(text, pattern, values, where):
         ph, why = bad[0]
         raise UsageError(
             "%s: %s %s in %r. test-audit shell-quotes substituted values itself, so put the placeholder "
-            "in plain unquoted, unescaped position (e.g. sh -c 'cd /srv && {cmd}')" % (where, ph, why, text))
+            "in plain unquoted, unescaped position (e.g. sh -c 'pytest {file}')" % (where, ph, why, text))
     return pattern.sub(lambda m: values[m.group(1)], text)
 
 
 class Ctx:
-    def __init__(self, repo, config, config_path, via, dry_run, json_mode, timeout=None):
+    def __init__(self, repo, config, config_path, dry_run, json_mode, timeout=None):
         self.repo = repo
         self.config = config
         self.config_path = config_path
-        self.via_raw = via
-        try:
-            self.via = shlex.split(via) if via else None
-        except ValueError as e:
-            raise UsageError("--via is not a valid command prefix (%s): %r" % (e, via)) from None
-        if via is not None and not self.via:
-            raise UsageError("--via is empty")
-        for tok in self.via or ():
-            substitute(tok, _PLACEHOLDER, {"cmd": "", "root": ""}, "--via")  # validate up front
         self.dry_run = dry_run
         self.json = json_mode
         self.timeout = timeout
@@ -710,38 +699,6 @@ class Ctx:
         if not self.inside(os.path.dirname(c) or "."):
             raise UsageError("path is outside the repository: %s" % arg)
         return posix(os.path.relpath(os.path.abspath(c), self.repo))
-
-    def exec_cwd(self, root_rel):
-        """Local cwd for a command: the owning root, or the repo root under
-        --via (transports such as Crabbox sync and run from the repo root)."""
-        return self.repo if self.via else self.abspath(root_rel)
-
-    def shown_cwd(self, root_rel):
-        return "." if self.via else root_rel
-
-    def wrap(self, argv, root_rel="."):
-        """Apply --via. The command is started from the repo root; for a
-        non-top root it first enters the root through a fixed shell script
-        that takes the root and argv as positional parameters, so no path is
-        ever spliced into shell source:
-
-            PREFIX sh -c 'cd -- "$1" && shift && exec "$@"' test-audit ROOT ARGV...
-
-        `{cmd}` in PREFIX is replaced by that whole command shell-quoted as one
-        word (for ssh-style transports that re-parse a string); `{root}` is
-        replaced by the shell-quoted root. Otherwise the words are appended."""
-        if not self.via:
-            return list(argv)
-        inner = list(argv) if root_rel in ("", ".") else (
-            ["sh", "-c", ENTER_ROOT, "test-audit", root_rel] + list(argv))
-        values = {"root": shlex.quote(root_rel), "cmd": shell_join(inner)}
-        used_cmd = any("{cmd}" in tok for tok in self.via)
-        # one pass over the original template: inserted text is never rescanned,
-        # so a path containing "{cmd}" or "{root}" stays literal
-        out = [substitute(tok, _PLACEHOLDER, values, "--via") for tok in self.via]
-        if not used_cmd:
-            out += inner
-        return out
 
     def stream(self):
         """Where runner output streams while it runs (captured only in --json)."""

@@ -44,6 +44,11 @@ const workspace = fs.mkdtempSync(prefix);
 If the repo reports new bare temp-dir creation or manual helper usage in
 changed test paths, check that report for your diff.
 
+Unix socket paths are short (about 104 bytes on macOS, 108 on Linux). When
+tools under test create sockets beneath the temp root, keep that root shallow,
+for example directly under `/tmp`, and keep disposable workspace outputs out of
+`TMPDIR`, `TMP`, and `TEMP`.
+
 pytest: use the built-in `tmp_path` (per test) or `tmp_path_factory` (per
 session) fixtures; pytest owns cleanup. Treat a bare `tempfile.mkdtemp()` like
 a bare `fs.mkdtemp*`: allowed only with the same reason comment.

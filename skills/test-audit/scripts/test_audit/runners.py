@@ -262,12 +262,7 @@ def _build(ctx, p, runner):
             p.error = "%s is not installed (no node_modules/.bin/%s); install project deps first" % (name, name)
             return p
         sub = ["test", "run"] if runner == "vp" else ["run"]
-        if p.file and not ctx.via:
-            target = os.path.realpath(ctx.abspath(p.file))
-        else:
-            target = rel
-            if p.file:
-                p.notes.append("vitest filters are substring matches; relative path used under --via")
+        target = os.path.realpath(ctx.abspath(p.file)) if p.file else rel
         code, help_text = _help(ctx, probe_exe + sub[:-1] + ["--help"] if runner == "vp" else probe_exe + ["--help"], cwd_abs)
         flags = []
         if code == 0 and help_text:
@@ -314,11 +309,11 @@ def _build(ctx, p, runner):
             flags = ["--runInBand"]
             p.notes.append("could not verify jest flags from --help")
         p.worker_flags = flags
-        cache = [] if ctx.via else ["--cacheDirectory", ctx.scratch("jest-cache")]
+        cache = ["--cacheDirectory", ctx.scratch("jest-cache")]
         p.argv = (["env"] + env if env else []) + exe + flags + cache + ["--runTestsByPath", rel] + extra
         return p
     if runner == "bun":
-        if not shutil.which("bun") and not ctx.via:
+        if not shutil.which("bun"):
             p.error = "bun is not installed or not on PATH"
             return p
         p.flags_verified = True
@@ -340,10 +335,8 @@ def _build(ctx, p, runner):
                 flags = ["-n", "0"]
                 p.notes.append("pytest-xdist active: -n 0 disables workers")
         elif "No module named pytest" in help_text:
-            if not ctx.via:
-                p.error = "pytest is not installed in %s; create the project environment (e.g. `uv sync`) first" % (exe,)
-                return p
-            p.notes.append("pytest not importable locally; flags unverified")
+            p.error = "pytest is not installed in %s; create the project environment (e.g. `uv sync`) first" % (exe,)
+            return p
         else:
             p.notes.append("`pytest --help` failed locally; xdist detection skipped")
         p.worker_flags = flags
@@ -383,7 +376,7 @@ def _int(m):
 _NO_SUMMARY = "runner exited %s without a test summary"
 
 
-def interpret(runner, res, error_codes=(), via=False):
+def interpret(runner, res, error_codes=()):
     """Return (status, reason). status: passed | failed | error.
 
     Signal deaths: a negative exit (killed, as seen by the kernel) is always
@@ -393,7 +386,7 @@ def interpret(runner, res, error_codes=(), via=False):
     128+N heuristic applies only when there is no framework result."""
     if res.exit_code is not None and res.exit_code < 0:
         return "error", signal_exit(res.exit_code)
-    status, reason = _interpret(runner, res, error_codes, via)
+    status, reason = _interpret(runner, res, error_codes)
     fam = FAMILY.get(runner, runner)
     no_result = (
         (status == "error" and reason == _NO_SUMMARY % res.exit_code)
@@ -405,7 +398,7 @@ def interpret(runner, res, error_codes=(), via=False):
     return status, reason
 
 
-def _interpret(runner, res, error_codes=(), via=False):
+def _interpret(runner, res, error_codes=()):
     if res.error == "not-found":
         return "error", "command not found: %s" % res.argv[0]
     if res.error == "not-executable":
@@ -416,8 +409,6 @@ def _interpret(runner, res, error_codes=(), via=False):
     code = res.exit_code
     if code in (126, 127):
         return "error", "command not found or not executable (exit %d)" % code
-    if via and code == 255:
-        return "error", "remote transport failed (exit 255)"
     fam = FAMILY.get(runner, runner)
     if fam == "pytest":
         if code == 0:
@@ -488,7 +479,7 @@ def _vite_temp_snapshot(ctx, plan):
     which process wrote a file in that shared directory, so test-audit never
     deletes files there. It only removes the directory itself when this run
     created it and it is empty. Returns the dirs that did not exist yet."""
-    if FAMILY.get(plan.runner) != "vitest" or ctx.via:
+    if FAMILY.get(plan.runner) != "vitest":
         return []
     out = []
     d = plan.cwd_rel
@@ -518,9 +509,9 @@ def execute(ctx, plan, label=None, env=None):
             "file": plan.file, "root": plan.cwd_rel, "runner": plan.runner, "command": None,
             "status": "error", "exit_code": None, "duration_s": 0.0, "reason": plan.error,
         }
-    argv = ctx.wrap(plan.argv, plan.cwd_rel)
+    argv = list(plan.argv)
     rec = {
-        "file": plan.file, "root": plan.cwd_rel, "cwd": ctx.shown_cwd(plan.cwd_rel), "runner": plan.runner, "command": argv,
+        "file": plan.file, "root": plan.cwd_rel, "runner": plan.runner, "command": argv,
         "status": None, "exit_code": None, "duration_s": 0.0, "reason": None,
     }
     if ctx.dry_run:
@@ -528,7 +519,7 @@ def execute(ctx, plan, label=None, env=None):
         return rec
     stream = ctx.stream()
     if stream is not None:
-        stream.write("$ (cd %s && %s)\n" % (ctx.shown_cwd(plan.cwd_rel), shell_join(argv)))
+        stream.write("$ (cd %s && %s)\n" % (plan.cwd_rel, shell_join(argv)))
         stream.flush()
     # Every run gets a fresh, external bytecode cache: no stale .pyc can be
     # read and none is written into the repo (applies to any Python child).
@@ -537,12 +528,12 @@ def execute(ctx, plan, label=None, env=None):
     run_env.update(env or {})
     vite_temp = _vite_temp_snapshot(ctx, plan)
     try:
-        res = run_process(argv, ctx.exec_cwd(plan.cwd_rel), stream=stream, timeout=ctx.timeout, env=run_env)
+        res = run_process(argv, ctx.abspath(plan.cwd_rel), stream=stream, timeout=ctx.timeout, env=run_env)
     finally:
         # runs on the interrupt path too, after the process group is gone
         ctx.drop(cache_dir)
         _vite_temp_cleanup(ctx, vite_temp)
-    status, reason = interpret(plan.runner, res, plan.error_exit_codes, via=bool(ctx.via))
+    status, reason = interpret(plan.runner, res, plan.error_exit_codes)
     if res.error == "timeout":
         reason = "timed out after %ss" % ctx.timeout
     rec.update(status=status, exit_code=res.exit_code, duration_s=res.duration, reason=reason)

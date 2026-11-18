@@ -1,4 +1,4 @@
-"""Round-3 review regressions: escaped/`$`/backtick placeholders, repo paths
+"""Round-3 review regressions: escaped/`$`/backtick template placeholders, repo paths
 in embedded template placeholders, owner tests outside testpaths, pytest's
 testpaths fallback, runner results before the 128+N heuristic, NUL bytes in
 config, and an in-repo TMPDIR."""
@@ -22,9 +22,9 @@ echo 'Tests:       1 passed, 1 total'; exit 0
 class EscapedPlaceholderTest(FixtureCase):
     PKG = "packages/x;touch PWN;#"
 
-    def _workspace(self, test_command="true {file}", pkg=None):
+    def _workspace(self, test_command="true {file}", pkg=None, name="repo"):
         pkg = pkg or self.PKG
-        return self.repo({
+        return self.repo(name=name, files={
             "package.json": json.dumps({"private": True, "workspaces": ["packages/*"]}),
             pkg + "/package.json": json.dumps({"name": "x"}),
             pkg + "/a.test.ts": "test('a', () => {});\n",
@@ -35,16 +35,16 @@ class EscapedPlaceholderTest(FixtureCase):
         return [os.path.join(d, f) for d, _, fs in os.walk(root) for f in fs if f == "PWN"]
 
     def test_escaped_dollar_and_backtick_placeholders_are_refused_before_running(self):
-        root = self._workspace()
-        for via in (r"sh -c 'printf %s \{root}; {cmd}'", "sh -c 'echo ${root}; {cmd}'",
-                    "sh -c 'echo `{root}`; {cmd}'", r"sh -c '\{cmd}'"):
-            data = self.tool_json("--via", via, "run", self.PKG + "/a.test.ts", cwd=root, expect=2)
-            self.assertEqual(data["error"]["kind"], "usage", via)
-            self.assertEqual(self._pwned(root), [], via)
+        for i, template in enumerate((r"sh -c 'printf %s \{root}; test -e {file}'", "sh -c 'echo ${root}; test -e {file}'",
+                                      "sh -c 'echo `{root}`; test -e {file}'", r"sh -c 'test -e \{file}'")):
+            root = self._workspace(template, name="r%d" % i)
+            data = self.tool_json("run", self.PKG + "/a.test.ts", cwd=root, expect=2)
+            self.assertEqual(data["error"]["kind"], "usage", template)
+            self.assertEqual(self._pwned(root), [], template)
         # an escaped backslash leaves the placeholder unquoted and unescaped:
         # the quoted value stays one word, so this form is allowed and safe
-        res = self.tool_json("--via", r"sh -c 'printf %s \\{root} >/dev/null; {cmd}'", "run", self.PKG + "/a.test.ts",
-                             cwd=root, expect=0)["result"]["results"][0]
+        root = self._workspace(r"sh -c 'printf %s \\{root} >/dev/null; test -e {file}'", name="ok")
+        res = self.tool_json("run", self.PKG + "/a.test.ts", cwd=root, expect=0)["result"]["results"][0]
         self.assertEqual(res["status"], "passed")
         self.assertEqual(self._pwned(root), [])
 

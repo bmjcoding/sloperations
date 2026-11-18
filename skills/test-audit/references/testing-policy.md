@@ -22,10 +22,8 @@
 - **Choose remote proof deliberately.** Use PR CI for broad proof; remote test
   machines, if the repo provides them, may cover expensive checks, a busy or
   unqualified local host, another OS/device, live providers/channels, long E2E,
-  or heavy benchmarks. Route `scripts/test-audit` there with `--via "PREFIX"`:
-  Crabbox (optional `crabbox` skill), e.g.
-  `--via "crabbox run --provider local-container --"`, or an ssh/docker prefix.
-  Acquire only when the command is ready and capacity is granted promptly. If
+  or heavy benchmarks. To use `scripts/test-audit` there, run it inside the
+  remote checkout. Acquire only when the command is ready and capacity is granted promptly. If
   queued, stop only the task-owned allocation; use PR CI or a safe local scope. Keep uncovered
   platform-specific proof pending. Never force heavy work onto a busy machine
   or chain providers. Use the smallest profile proven for the selected workload.

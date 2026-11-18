@@ -1,4 +1,4 @@
-"""Regressions from the CLI and docs reviews: transport safety, restore
+"""Regressions from the CLI and docs reviews: owning-root execution, restore
 safety, process cleanup, history and config strictness, change discovery,
 pytest config discovery, bytecode freshness, LOC totals."""
 
@@ -27,42 +27,18 @@ def keeper_cmd(script_path):
     return " ".join(shlex.quote(x) for x in (PY, script_path))
 
 
-class ViaTest(FixtureCase):
-    EVIL = "packages/x;touch VIA_INJECTION;#"
-
-    def _workspace(self, pkg):
-        return self.repo({
+class OwningRootTest(FixtureCase):
+    def test_commands_run_in_the_owning_package_root(self):
+        root = self.repo({
             "package.json": json.dumps({"private": True, "workspaces": ["packages/*"]}),
-            pkg + "/package.json": json.dumps({"name": "x", "scripts": {"test": "bun test"}}),
-            pkg + "/a.test.ts": "test('a', () => {});\n",
+            "packages/pkg/package.json": json.dumps({"name": "x", "scripts": {"test": "bun test"}}),
+            "packages/pkg/a.test.ts": "test('a', () => {});\n",
             ".test-audit.json": json.dumps({"testCommand": "sh -c 'pwd > ran_in.txt' {file}"}),
         })
-
-    def test_package_paths_never_become_shell_source(self):
-        root = self._workspace(self.EVIL)
-        for via in ("sh -c 'printf %s {root} >/dev/null; {cmd}'", "env"):
-            res = self.tool_json("--via", via, "run", self.EVIL + "/a.test.ts", cwd=root, expect=0)["result"]["results"][0]
-            self.assertEqual(res["status"], "passed")
-        found = [os.path.join(d, f) for d, _, fs in os.walk(root) for f in fs if f == "VIA_INJECTION"]
-        self.assertEqual(found, [])
-
-    def test_transport_starts_at_repo_root_and_enters_the_owning_root(self):
-        root = self._workspace("packages/pkg")
-        via = "sh -c 'pwd > transport_cwd.txt; exec \"$@\"' via"
-        res = self.tool_json("--via", via, "run", "packages/pkg/a.test.ts", cwd=root, expect=0)["result"]["results"][0]
-        self.assertEqual(res["cwd"], ".")
-        with open(os.path.join(root, "transport_cwd.txt")) as f:
-            self.assertEqual(os.path.realpath(f.read().strip()), root)
+        res = self.tool_json("run", "packages/pkg/a.test.ts", cwd=root, expect=0)["result"]["results"][0]
+        self.assertEqual(res["root"], "packages/pkg")
         with open(os.path.join(root, "packages/pkg/ran_in.txt")) as f:
             self.assertEqual(os.path.realpath(f.read().strip()), os.path.join(root, "packages", "pkg"))
-
-    def test_mutate_refuses_via(self):
-        root = calc_repo(self)
-        code, _, err = self.tool("--via", "env", "mutate", "--file", "src/calc.py", "--replace", "a + b", "--with", "a * b",
-                                 "--test", "tests/test_add.py", cwd=root)
-        self.assertEqual(code, 2)
-        self.assertIn("does not support --via", err)
-        self.assertEqual(git(root, "status", "--porcelain"), "")
 
 
 class RestoreTest(FixtureCase):

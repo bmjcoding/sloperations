@@ -16,34 +16,33 @@ from test_hardening import CALC, calc_repo, keeper_cmd
 
 
 class PlaceholderTest(FixtureCase):
-    def _workspace(self, pkg):
-        return self.repo({
+    def _workspace(self, pkg, test_command="true {file}", name="repo"):
+        return self.repo(name=name, files={
             "package.json": json.dumps({"private": True, "workspaces": ["packages/*"]}),
             pkg + "/package.json": json.dumps({"name": "x"}),
             pkg + "/a.test.ts": "test('a', () => {});\n",
-            ".test-audit.json": json.dumps({"testCommand": "true {file}"}),
+            ".test-audit.json": json.dumps({"testCommand": test_command}),
         })
 
     def _pwned(self, root):
         return [os.path.join(d, f) for d, _, fs in os.walk(root) for f in fs if f == "PWN"]
 
     def test_placeholders_inside_substituted_paths_stay_literal(self):
-        for pkg in ("packages/x{cmd};touch PWN;#", "packages/y{root}{cmd} ;touch PWN;#", "packages/z{cmd}';touch PWN;#"):
-            root = self._workspace(pkg)
-            res = self.tool_json("--via", "sh -c 'printf %s {root} >/dev/null; {cmd}'", "run", pkg + "/a.test.ts",
-                                 cwd=root, expect=0)["result"]["results"][0]
+        for pkg in ("packages/x{file};touch PWN;#", "packages/y{root}{files} ;touch PWN;#", "packages/z{file}';touch PWN;#"):
+            root = self._workspace(pkg, "sh -c 'test -e {file} && test -n {root}'")
+            res = self.tool_json("run", pkg + "/a.test.ts", cwd=root, expect=0)["result"]["results"][0]
             self.assertEqual(res["status"], "passed", pkg)
             self.assertEqual(self._pwned(root), [], pkg)
             git(root, "clean", "-qfdx")
 
     def test_placeholders_inside_quotes_are_refused(self):
         pkg = 'packages/x";touch PWN;#'
-        root = self._workspace(pkg)
-        for via in ('sh -c \'printf %s "{root}"; {cmd}\'', "sh -c \"echo '{cmd}'\""):
-            err = self.tool_json("--via", via, "run", pkg + "/a.test.ts", cwd=root, expect=2)["error"]
+        for i, template in enumerate(('sh -c \'printf %s "{root}"; test -e {file}\'', "sh -c \"echo '{file}'\"")):
+            root = self._workspace(pkg, template, name="q%d" % i)
+            err = self.tool_json("run", pkg + "/a.test.ts", cwd=root, expect=2)["error"]
             self.assertEqual(err["kind"], "usage")
             self.assertRegex(err["message"], r"is inside (single|double) quotes")
-        self.assertEqual(self._pwned(root), [])
+            self.assertEqual(self._pwned(root), [])
 
 
 class ParentSwapTest(FixtureCase):
@@ -106,16 +105,12 @@ class SignalExitTest(FixtureCase):
         self.assertEqual(res["verdict"], "ERROR")
         self.assertIn("128+9", res["results"][0]["reason"])
 
-    def test_killed_or_unreachable_checks_are_errors_not_failures(self):
+    def test_killed_checks_are_errors_not_failures(self):
         kill = " ".join(shlex.quote(x) for x in (PY, "-c", "import os, signal; os.kill(os.getpid(), signal.SIGTERM)"))
         root = self.repo({"src/a.py": "A = 1\n", ".test-audit.json": json.dumps({"checks": {"proof": kill}})})
         write(root, {"src/a.py": "A = 2\n"})
         check = self.tool_json("changed", "--run", cwd=root, expect=2)["result"]["results"]["checks"][0]
         self.assertEqual((check["status"], check["reason"]), ("error", "killed by signal 15"))
-        write(root, {".test-audit.json": json.dumps({"checks": {"proof": "true {files}"}})})
-        check = self.tool_json("--via", 'sh -c "exit 255" ignored', "changed", "--run", cwd=root, expect=2)["result"]["results"]["checks"][0]
-        self.assertEqual(check["status"], "error")
-        self.assertIn("transport", check["reason"])
 
 
 class ValidationTest(FixtureCase):
@@ -132,12 +127,19 @@ class ValidationTest(FixtureCase):
             self.assertEqual(json.loads(out)["error"]["kind"], "usage", cfg)
         write(root, {".test-audit.json": json.dumps({"$schema": "x", "$comment": ["anything"]})})
         self.tool_json("detect", cwd=root, expect=0)
-        for args in (["--via", "'", "run", "a.test.ts", "--dry-run"],
-                     ["mutate", "--file", "a.test.ts", "--replace", "a", "--with", "b", "--test", "a.test.ts", "--test-cmd", "'", "--dry-run"]):
-            code, out, err = self.tool("--json", *args, cwd=root)
+        code, out, err = self.tool("--json", "mutate", "--file", "a.test.ts", "--replace", "a", "--with", "b",
+                                   "--test", "a.test.ts", "--test-cmd", "'", "--dry-run", cwd=root)
+        self.assertEqual(code, 2)
+        self.assertNotIn("Traceback", err)
+        self.assertEqual(json.loads(out)["error"]["kind"], "usage")
+        # the removed --via option is an ordinary argparse usage error, exit 2
+        for args in (["--via=env", "run", "a.test.ts"], ["run", "a.test.ts", "--via", "env"]):
+            code, out, err = self.tool(*args, cwd=root)
             self.assertEqual(code, 2, args)
-            self.assertNotIn("Traceback", err)
-            self.assertEqual(json.loads(out)["error"]["kind"], "usage")
+            self.assertIn("unrecognized arguments: --via", err)
+        code, out, err = self.tool("--via", "env", "run", "a.test.ts", cwd=root)  # value read as the COMMAND
+        self.assertEqual(code, 2)
+        self.assertIn("test-audit: error:", err)
 
 
 FAKE_VITEST = r"""#!/bin/sh

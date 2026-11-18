@@ -62,8 +62,7 @@ Before adding test, answer:
 - Follow [proof policy](references/testing-policy.md#proof-policy); never edit a
   checkout during an active test run; run owner/sibling proof
   (`scripts/test-audit run`) + changed checks (`scripts/test-audit changed`);
-  then get an independent review: the `autoreview` skill if installed, else the
-  harness's own review.
+  then get an independent review.
 - Report causes, retained contracts, proof/cost, production versus test LOC,
   follow-ups. Commit/push/land only with task authority.
 

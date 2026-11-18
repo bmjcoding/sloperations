@@ -66,8 +66,7 @@ contract. Audit existing matches:
   on main: removed tests orphan support files/exports that ordinary PR checks
   miss.
 - Inspect `git diff --numstat` and `scripts/test-audit loc`; get final
-  independent review: the `autoreview` skill if installed, else the harness's
-  own review.
+  independent review.
 - Report causes, removed categories/seams, retained false positives, proof/cost,
   production versus test/support LOC, PR state, follow-ups.
 - Commit/push/land only when authorized through the repo's normal maintainer

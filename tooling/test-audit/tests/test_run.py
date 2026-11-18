@@ -1,4 +1,4 @@
-"""run: one file at a time, single worker, pass / fail / error, --via, --dry-run."""
+"""run: one file at a time, single worker, pass / fail / error, --dry-run."""
 
 import json
 import os
@@ -39,14 +39,13 @@ class RunTest(FixtureCase):
         self.assertIn("not a test file", err)
         self.assertFalse(os.path.exists(os.path.join(root, "ran")))
 
-    def test_via_prefix_carries_the_command_with_quoting_intact(self):
+    def test_paths_with_spaces_reach_the_runner_intact(self):
         root = self.repo(calc_repo_files(**{
-            "tests/test_with space.py": "import os\n\ndef test_env():\n    print('VIA=' + os.environ.get('VIA_MARK', ''))\n",
+            "tests/test_with space.py": "def test_space():\n    print('ran with spaces')\n",
         }))
-        appended = self.tool_json("--via", "env VIA_MARK=appended", "run", "tests/test_with space.py", cwd=root, expect=0)
-        self.assertIn("VIA=appended", "\n".join(appended["result"]["results"][0]["output_tail"]))
-        wrapped = self.tool_json("--via", "env VIA_MARK=wrapped sh -c {cmd}", "run", "tests/test_with space.py", cwd=root, expect=0)
-        self.assertIn("VIA=wrapped", "\n".join(wrapped["result"]["results"][0]["output_tail"]))
+        res = self.tool_json("run", "tests/test_with space.py", cwd=root, expect=0)["result"]["results"][0]
+        self.assertEqual(res["command"][-1], "tests/test_with space.py")
+        self.assertIn("ok test_space", "\n".join(res["output_tail"]))
 
     def test_dry_run_prints_commands_without_running(self):
         root = self.repo(calc_repo_files(**{"tests/test_ok.py": "def test_x():\n    open('ran', 'w').close()\n"}))

@@ -1,0 +1,16 @@
+[
+  {
+    "name": "test-audit",
+    "repo": "openclaw/openclaw",
+    "branch": "main",
+    "pin": "c5ef395ba7204c83240074b584e97f550a3aab7d",
+    "local": "skills/test-audit",
+    "paths": [
+      ".agents/skills/test-audit",
+      ".agents/skills/openclaw-testing/SKILL.md",
+      "docs/help/testing/writing-tests.md",
+      "docs/help/testing/boundary-scenarios.md",
+      "docs/help/testing/fixtures.md"
+    ]
+  }
+]

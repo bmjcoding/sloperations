@@ -15,7 +15,6 @@ def _globals(p, suppress):
     d = argparse.SUPPRESS if suppress else None
     p.add_argument("--repo", default=d, help="repository root (default: git top-level of cwd)")
     p.add_argument("--json", action="store_true", default=d if suppress else False, help="machine-readable output")
-    p.add_argument("--via", default=d, metavar="PREFIX", help="prefix for every test/check command (shlex-split; {root}, {cmd} placeholders)")
     p.add_argument("--config", default=d, metavar="PATH", help="config file (default: <repo>/.test-audit.json)")
     p.add_argument("--dry-run", action="store_true", default=d if suppress else False, help="print commands without running them")
     p.add_argument("--timeout", type=float, default=d, metavar="SECONDS", help="per-command timeout for test runs")
@@ -86,7 +85,7 @@ def _emit(ctx, command, exit_code, result=None, error=None):
         sys.stdout.write(json.dumps(env, indent=2, sort_keys=True) + "\n")
 
 
-_VALUE_OPTS = ("--replace", "--with", "--test-cmd", "--via")
+_VALUE_OPTS = ("--replace", "--with", "--test-cmd")
 
 
 def _glue_values(argv):
@@ -118,7 +117,7 @@ def main(argv=None):
             if top != repo:
                 repo = top
         cfg, cfg_path, applied = config.load(repo, args.config)
-        ctx = Ctx(repo, cfg, cfg_path, args.via, args.dry_run, args.json, timeout=args.timeout)
+        ctx = Ctx(repo, cfg, cfg_path, args.dry_run, args.json, timeout=args.timeout)
         ctx.config_applied = applied
         from . import commands
 

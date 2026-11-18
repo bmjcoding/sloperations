@@ -60,7 +60,6 @@ $S [global options] COMMAND [options]   # global options also work after COMMAND
   - A tsconfig whose incremental setting cannot be determined (both
     `--showConfig` and the relative `extends` chain fail): no flag is
     passed, and a warning says a `.tsbuildinfo` may be written.
-  - Anything under `--via`: the remote side's caches.
 - Ecosystem isolation: a TS-only repo runs nothing Python (besides this
   interpreter); a Python-only repo runs nothing Node.
 - Ephemeral analyzers: knip uses the repo's `node_modules/.bin/knip`, else
@@ -74,71 +73,12 @@ $S [global options] COMMAND [options]   # global options also work after COMMAND
 | --- | --- |
 | `--repo PATH` | repo root; default: git top-level of cwd |
 | `--json` | one JSON envelope on stdout (schema below); runner output captured, progress on stderr |
-| `--via PREFIX` | prefix every test/check command (remote runner; see below) |
 | `--config PATH` | default `<repo>/.test-audit.json` when present |
 | `--dry-run` | print commands; run nothing that executes tests, checks, or analyzers |
 | `--timeout SECONDS` | per-command limit; on timeout, kill the process group and mark `error` |
 
-`--via` (remote runners):
-
-- **Start dir:** the transport starts at the repo root; that is the local cwd,
-  and Crabbox syncs and runs from there. For a non-top package root, the
-  command enters the root through a fixed script whose only inputs are
-  positional parameters:
-
-  ```sh
-  PREFIX sh -c 'cd -- "$1" && shift && exec "$@"' test-audit <root> <argv...>
-  ```
-
-  No path is ever spliced into shell source.
-- **Splitting:** `PREFIX` is split with POSIX shell rules (`shlex`), and those
-  words are appended as separate argv entries.
-- **`{cmd}`:** replaced by the whole command above, shell-quoted as one
-  word, for transports that hand a string to a remote shell (ssh).
-- **`{root}`:** replaced by the shell-quoted owning root.
-- **Substitution rules:**
-  - **One pass:** every word of `PREFIX` is expanded in a single pass over
-    the original text. Inserted values are never rescanned, so a package
-    named `x{cmd}` stays literal.
-  - **Plain position only:** validation and substitution use the same
-    regex over the same text, so every site that would be expanded is
-    checked first. Reading each word as shell source, a placeholder is
-    refused (exit 2, before anything runs) when it is:
-    - inside `'...'`, `"..."`, or backticks;
-    - escaped by a backslash (`\{root}`);
-    - directly after `$` (`${root}`).
-
-    Values are shell-quoted for plain unquoted context; anywhere else, a
-    package path could end the quoting. Write `sh -c 'cd /srv && {cmd}'`,
-    not `sh -c 'cd "{root}"'`. An escaped backslash before a placeholder
-    (`\\{root}`) leaves it in plain position and is allowed.
-  - **Parse errors:** a `PREFIX` that does not parse (e.g. an unbalanced
-    quote) is a usage error, exit 2.
-- **Forms that work** (workspace package `packages/web`):
-
-  ```sh
-  # Crabbox: from anywhere in the repo; it syncs the repo root and runs there
-  $S --via "crabbox run --provider local-container --" run packages/web/src/cart.test.ts
-  #   -> crabbox run ... -- sh -c 'cd -- "$1" && shift && exec "$@"' test-audit packages/web node_modules/.bin/vitest run src/cart.test.ts --maxWorkers=1 ...
-  # ssh: the remote shell re-parses one string, so use {cmd}
-  $S --via "ssh host -- 'cd /srv/repo && {cmd}'" run packages/web/src/cart.test.ts
-  ```
-
-- **No sync, no env:** `--via` syncs nothing and forwards no environment
-  variables. Remote proof needs the current edited tree (and installed deps)
-  already on the remote side; Crabbox's own sync provides that, but plain ssh
-  does not. Executables are relative to the root (`node_modules/.bin/vitest`,
-  `.venv/bin/python`), except an interpreter outside the repo, which stays
-  absolute and must exist remotely. The bytecode prefix and the Jest cache
-  dir are local-only and are not applied.
-- **Not covered:** `--help` probes and `deadcode` run locally; `--via` does
-  not apply to them. Under `--via`, Vitest gets a root-relative file path (a
-  substring filter); see "filter matched >1 file" below.
-- **`mutate`:** refused under `--via` (exit 2). A mutation is only
-  meaningful if the keeper runs against exactly the mutated bytes and the
-  restore covers the same tree. A transport may run an unsynced or
-  differently cached copy and cannot be restored from here. Run the whole CLI
-  inside the remote checkout instead.
+Commands always run locally, in the owning package root. For a remote run,
+run the whole CLI inside the remote checkout.
 
 ## Commands
 
@@ -232,7 +172,7 @@ could not run, else 0.
 - `mutate`
   - **Target:** refused (exit 2, before any keeper runs) for a supplied path
     that is itself a symlink (checked before resolving), paths outside the
-    repo, non-regular files, `.git/`, and any use of `--via`. `--replace`
+    repo, non-regular files, and `.git/`. `--replace`
     must match exactly once unless `--occurrence N`. `--patch` must touch only
     `--file`; it is applied with `git apply` to a temp copy.
   - **Sequence:** precheck (keepers must pass unmutated, else ERROR); save a
@@ -297,7 +237,7 @@ could not run, else 0.
 | Jest | `Tests: N failed` | `Test suite failed to run`, `Tests: 0 total`, `No tests found` |
 | bun | `(fail) name` lines | `N error` with no failing test (load error) |
 | custom | any nonzero exit | `testErrorExitCodes`, 126/127, exit 128+N (below) |
-| all | | killed by a signal, runner not found, timeout, exit 255 under `--via` |
+| all | | killed by a signal, runner not found, timeout |
 
 Signal deaths:
 
@@ -314,9 +254,8 @@ Signal deaths:
     known runners that exit without a summary.
 
 `changed --run` checks have no framework result: a check killed by a signal
-(negative, or 128+N), or exiting 255 under `--via` (ssh's connection-failure
-code), is `error` (exit 2), not `failed`. So a check tool that legitimately
-exits 129-192 is reported as a signal death.
+(negative, or 128+N) is `error` (exit 2), not `failed`. So a check tool that
+legitimately exits 129-192 is reported as a signal death.
 
 ## Detection
 
@@ -488,8 +427,9 @@ test, support, generated, docs, config, production; config `testGlobs`; then:
     entries; no shell sees it.
   - **Embedded:** a placeholder inside a larger word (e.g. the script of
     `sh -c '... {file}'`) gets a shell-quoted value. It must be in plain
-    position (not quoted, escaped, or after `$`: the same rule as `--via`),
-    and is expanded in one pass.
+    position (not inside quotes or backticks, not escaped by a backslash, not
+    directly after `$`), and is expanded in one pass, so substituted paths
+    are never rescanned.
   - **Checks:** config `checks` follow the same rules.
   - **Shell features:** wrap the command in `sh -c '...'`.
 - **`checks`:** `null` disables a built-in check. A new name runs at the
@@ -504,7 +444,7 @@ test, support, generated, docs, config, production; config `testGlobs`; then:
   - a glob that does not compile (e.g. `[z-a]`);
   - a command template that does not parse (e.g. an unbalanced quote), or
     has an embedded placeholder in an unsafe position. The same applies to
-    `--test-cmd` and `--via`.
+    `--test-cmd`.
 
   These are what is checked; it is not a guarantee that a valid config
   cannot fail later. For example, a root path that matches no package is
@@ -521,18 +461,20 @@ Every `--json` run prints one object (keys sorted, stable across Python
 versions):
 
 ```json
-{"schema_version": 1, "tool": "test-audit", "version": "1.0.0", "command": "run",
+{"schema_version": 2, "tool": "test-audit", "version": "1.0.0", "command": "run",
  "repo": "/abs/repo", "dry_run": false, "exit_code": 1, "warnings": [],
  "result": {...}}
 ```
 
+- **Schema version 2:** the test result record no longer has `cwd`. It only
+  differed from `root` under the removed `--via` option; commands run in
+  `root`.
 - **Errors:** an error has `error: {"kind": "usage"|"environment", "message"}`
   instead of `result`. Errors raised before the repo resolves omit `repo` and
   `dry_run`.
 - **Paths:** repo-relative POSIX; `root` is `.` for the top.
 - **Test result record:** shared by run, baseline, `changed --run`, and mutate:
-  `{file, root (owning root), cwd (local start dir: root, or "." under
-  --via), runner, command (argv after --via), status
+  `{file, root (owning root, where the command runs), runner, command, status
   passed|failed|error|dry-run, exit_code, duration_s, reason, output_tail?}`.
 
 | Command | `result` |
@@ -588,7 +530,6 @@ $S ledger packages/web --format csv > /tmp/web-ledger.csv
 $S mutate --file packages/web/src/cart.ts --replace 'total + tax' --with 'total' \
    --test packages/web/src/cart.test.ts            # expect CAUGHT
 $S loc --totals packages/web                       # final scoped counts; compare to baseline .loc
-$S --via "crabbox run --provider local-container --" run packages/web/src/cart.test.ts
 ```
 
 Python (uv + pytest):

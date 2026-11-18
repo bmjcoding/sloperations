@@ -84,7 +84,7 @@ def cmd_run(ctx, args):
     text = []
     if ctx.dry_run:
         for r in results:
-            text.append("(cd %s && %s)" % (ctx.shown_cwd(r["root"]), shell_join(r["command"])) if r["command"] else "# %s: %s" % (r["file"], r["reason"]))
+            text.append("(cd %s && %s)" % (r["root"], shell_join(r["command"])) if r["command"] else "# %s: %s" % (r["file"], r["reason"]))
     else:
         text.append(_summary(results))
     return Outcome(exit_code, {"results": results, "summary": _counts(results)}, text)
@@ -306,7 +306,7 @@ def cmd_changed(ctx, args):
             continue
         argv = _check_argv(c, files) if c.accepts_files else list(c.argv)
         check_plan.append({
-            "name": c.name, "root": c.root, "command": ctx.wrap(argv, c.root), "files": files,
+            "name": c.name, "root": c.root, "command": argv, "files": files,
             "available": c.available, "source": c.source,
         })
     test_plan = []
@@ -314,7 +314,7 @@ def cmd_changed(ctx, args):
         p = runners.plan_for(ctx, t)
         test_plan.append({
             "file": t, "reasons": tests[t], "root": p.cwd_rel, "runner": p.runner,
-            "command": ctx.wrap(p.argv, p.cwd_rel) if p.argv else None, "error": p.error,
+            "command": p.argv, "error": p.error,
             "_plan": p,
         })
     result = {
@@ -337,10 +337,10 @@ def cmd_changed(ctx, args):
         text += ["  " + u for u in unmapped]
     text.append("plan:")
     for c in check_plan:
-        text.append("  check %s: (cd %s && %s)%s" % (c["name"], ctx.shown_cwd(c["root"]), shell_join(c["command"]), "" if c["available"] else "  [unavailable: %s]" % c["source"]))
+        text.append("  check %s: (cd %s && %s)%s" % (c["name"], c["root"], shell_join(c["command"]), "" if c["available"] else "  [unavailable: %s]" % c["source"]))
     for t in test_plan:
         if t["command"]:
-            text.append("  test %s: (cd %s && %s)  # %s" % (t["file"], ctx.shown_cwd(t["root"]), shell_join(t["command"]), "; ".join(t["reasons"])))
+            text.append("  test %s: (cd %s && %s)  # %s" % (t["file"], t["root"], shell_join(t["command"]), "; ".join(t["reasons"])))
         else:
             text.append("  test %s: unavailable: %s" % (t["file"], t["error"]))
     if not check_plan and not test_plan:
@@ -360,10 +360,10 @@ def cmd_changed(ctx, args):
         else:
             stream = ctx.stream()
             if stream is not None:
-                stream.write("$ (cd %s && %s)\n" % (ctx.shown_cwd(c["root"]), shell_join(c["command"])))
+                stream.write("$ (cd %s && %s)\n" % (c["root"], shell_join(c["command"])))
             cache_env, cache_dir = ctx.fresh_pycache()  # Python tools (mypy, ...) write no .pyc into the repo/.venv
             try:
-                res = run_process(c["command"], ctx.exec_cwd(c["root"]), stream=stream, timeout=ctx.timeout, env=cache_env)
+                res = run_process(c["command"], ctx.abspath(c["root"]), stream=stream, timeout=ctx.timeout, env=cache_env)
             finally:
                 ctx.drop(cache_dir)
             if res.error in ("not-found", "not-executable") or res.exit_code in (126, 127):
@@ -372,8 +372,6 @@ def cmd_changed(ctx, args):
                 rec.update(status="error", reason="timed out")
             elif signal_exit(res.exit_code):
                 rec.update(status="error", reason=signal_exit(res.exit_code))
-            elif ctx.via and res.exit_code == 255:
-                rec.update(status="error", reason="remote transport failed (exit 255)")
             else:
                 rec.update(status="passed" if res.exit_code == 0 else "failed", reason=None)
             rec.update(exit_code=res.exit_code, duration_s=res.duration)

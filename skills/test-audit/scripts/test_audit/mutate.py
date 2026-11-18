@@ -197,10 +197,6 @@ def _supplied_path(ctx, arg):
 
 
 def cmd_mutate(ctx, args):
-    if ctx.via:
-        raise UsageError(
-            "mutate does not support --via: it edits the local tree, and a transport may run a stale, "
-            "unsynced, or differently cached copy. Run the whole CLI inside the remote checkout instead.")
     supplied = _supplied_path(ctx, args.file)
     if supplied and os.path.islink(supplied):
         raise UsageError("--file is a symlink; pass the real file it points to: %s" % args.file)
@@ -232,7 +228,7 @@ def cmd_mutate(ctx, args):
     else:
         plans = [runners.plan_for(ctx, t) for t in tests]
     result = {"file": target, "sha256": sha_before, "line": line, "diff": diff, "tests": tests,
-              "commands": [ctx.wrap(p.argv, p.cwd_rel) if p.argv else None for p in plans]}
+              "commands": [list(p.argv) if p.argv else None for p in plans]}
     if ctx.dry_run:
         result["verdict"] = "DRY-RUN"
         text = diff + ["(cd %s && %s)" % (p.cwd_rel, shell_join(c)) if c else "# %s" % p.error for p, c in zip(plans, result["commands"])]

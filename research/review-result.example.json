@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "example_only": true,
+  "run_id": "run-example",
+  "repository": {
+    "platform": "bitbucket_datacenter",
+    "id": "123",
+    "project": "DEMO",
+    "slug": "job-runner"
+  },
+  "pull_request": 42,
+  "snapshot": {
+    "source_sha": "example-source-sha",
+    "destination_sha": "example-target-sha",
+    "merge_base_sha": "example-base-sha"
+  },
+  "policy_hash": "example-effective-policy-hash",
+  "state": "COMPLETE",
+  "gate": {
+    "decision": "BLOCK",
+    "reason": "verified_high_severity_finding"
+  },
+  "coverage": {
+    "complete_for_required_policy": true,
+    "reviewed_paths": [
+      "src/submit-job.ts"
+    ],
+    "skipped": [],
+    "categories_complete": [
+      "correctness",
+      "security"
+    ],
+    "categories_not_requested": [
+      "semantic_duplication"
+    ]
+  },
+  "provenance": {
+    "tool_bundle": "example-pinned-bundle",
+    "prompt_version": "review-v1",
+    "context_manifest_hash": "example-context-hash",
+    "model_config_hash": "example-model-config-hash",
+    "bedrock_model_id": "example-approved-model-id"
+  },
+  "usage": {
+    "model_calls": 2,
+    "model_usd": "0.08",
+    "illustrative": true
+  },
+  "findings": [
+    {
+      "id": "finding-example-stable-id",
+      "rule_id": "job.retry.idempotency",
+      "category": "correctness",
+      "severity": "high",
+      "evidence_class": "reproduced",
+      "origin": "introduced",
+      "state": "OPEN",
+      "location": {
+        "path": "src/submit-job.ts",
+        "blob_id": "example-blob",
+        "symbol": "submitJob",
+        "line_start": 81,
+        "line_end": 84
+      },
+      "trigger": "The first submission succeeds but its response times out; the client retries with the same submission identifier.",
+      "failure": "The retry enqueues a duplicate job because the write does not enforce the submission identifier's uniqueness.",
+      "evidence": [
+        {
+          "artifact_id": "artifact-example",
+          "kind": "regression_test",
+          "base_result": "PASS",
+          "head_result": "FAIL"
+        }
+      ],
+      "validation_recipe_ids": [
+        "approved.job-retry-contract"
+      ],
+      "remediation": {
+        "eligible": true,
+        "allowed_symbols": [
+          "src/submit-job.ts#submitJob"
+        ],
+        "allowed_tests": [
+          "tests/job-retry.test.ts"
+        ],
+        "dependency_changes": false
+      },
+      "episode_id": "episode-example"
+    }
+  ],
+  "episode": {
+    "id": "episode-example",
+    "repair_pushes_used": 0,
+    "repair_pushes_limit": 2,
+    "reset_requires_authorization": true,
+    "acceptance_manifest_hash": "example-trusted-acceptance-hash",
+    "evaluation_bundle_hash": "example-frozen-evaluation-hash"
+  }
+}

@@ -1,0 +1,83 @@
+# Illustrative policy for the proposed review service.
+# Active settings are compiled from trusted target-branch + central policy.
+schema_version: 1
+platform: bitbucket_datacenter
+inference:
+  provider: bedrock
+  model_alias: approved-review-standard # resolve centrally to a pinned model
+  regions: centrally_approved
+  schema_id: review-candidates-v1
+  automatic_model_fallback: false
+policy_resolution:
+  order: [central, project, repository, path]
+  central_mandatory_rules_override: true
+  path_order: explicit_priority_then_declared_order
+  reject_conflicting_equal_priority_rules: true
+  source: protected_target_branch
+review:
+  depth: fast # rules_only | fast | standard | deep
+  report: [critical, high, medium]
+  block: [critical, high] # only if evidence requirements below are met
+  require_evidence_for_blocking: true
+  mandatory_incomplete: block
+  optional_incomplete: report
+  max_parallel_model_calls: 2
+  wall_deadline_seconds: 30
+  max_model_calls_per_head: 3 # includes verifier + every retry
+  max_input_tokens_per_head: 48000 # aggregate across all calls
+  max_billed_output_tokens_per_head: 5000 # include reasoning per provider billing
+  max_model_usd_per_head: 0.50 # illustrative pilot cap, not expected cost
+  oversized_pr: explicit_deep_or_incomplete
+categories:
+  correctness: {enabled: true}
+  security: {enabled: true, mandatory_rules: centrally_approved}
+  performance: {enabled: true, mode: advisory_unless_measured_regression}
+  complexity: {enabled: true, mode: changed_function_ratchet}
+  duplication: {enabled: true, mode: new_token_clones_advisory}
+  style: {enabled: true, engine: deterministic_only}
+remediation:
+  enabled: false # opt in after shadow evaluation
+  owner: developer_agent
+  max_automatic_pushes: 2
+  episode_wall_seconds: 600
+  max_model_usd_per_episode: 2.00 # server + metered client, otherwise server only
+  max_attempts_per_finding: 2
+  # Illustrative absolute episode ceilings; calibrate by repo/path in the pilot.
+  patch_budget:
+    max_distinct_files: 5
+    max_distinct_symbols: 8
+    max_final_changed_lines: 200 # additions + deletions relative to episode start
+    max_cumulative_changed_lines: 400 # sum additions + deletions over repair pushes
+    count_oscillating_edits: true
+    on_exceeded: needs_attention_without_budget_reset
+  scope: finding_symbols_plus_explicit_test_allowlist
+  allow_dependency_changes: false
+  allow_public_api_changes: false
+  protected_paths: [".review/**", ".git/**", "ci/**", "security-policy/**"]
+  prohibit_test_weakening: true
+  acceptance_source: coordinator_trusted_artifacts
+  freeze_evaluation_per_episode: true
+  require_defect_detection_evidence: true
+  reset: authenticated_authorized_action_only
+  new_unrelated_findings: advisory_backlog
+  new_serious_regressions: block_without_budget_reset
+paths:
+  - match: "services/job-runner/**"
+    priority: 100
+    review:
+      depth: deep
+      wall_deadline_seconds: 180
+    remediation:
+      enabled: false
+  - match: "services/job-runner/generated/**"
+    priority: 200
+    review:
+      semantic_generated_body: skip_with_recorded_coverage
+      source_schema_and_generator: required
+  - match: "docs/**"
+    priority: 10
+    review:
+      depth: rules_only
+      applicable_rules: [links, secrets, factual_api_contracts]
+# Caps above are aggregated across path partitions. Central mandatory checks
+# and approved budget ceilings cannot be weakened/multiplied by these rules.

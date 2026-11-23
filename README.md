@@ -1,7 +1,8 @@
 # sloperations
 
-Agent skills that are self-contained and safe to copy onto machines that can't
-reach their upstream repositories.
+This repository contains self-contained agent skills and research on AI code
+review. The skills can be copied onto machines that can't reach their upstream
+repositories.
 
 ## Skills
 
@@ -11,6 +12,12 @@ reach their upstream repositories.
 
 To install a skill, copy its folder into your agent's skills directory. Nothing
 in a skill folder needs network access to an upstream repository.
+
+## Research
+
+[AI code review research](research/README.md) covers review platforms, a reference
+service design for Bitbucket Data Center, Amazon EKS, and Amazon Bedrock, and
+example review policy and result formats.
 
 ## Following upstream
 

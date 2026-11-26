@@ -1,0 +1,51 @@
+# cleanup.toml: the slop-cleanup framing file (phase 1). slop-check reads it and rejects unknown keys.
+# Every declared root must exist. TypeScript and Node.
+
+[repo]
+stacks = ["ts-node"]
+source_roots = ["server", "client", "shared", "scripts"]   # scanned for comments, logs and SQL
+test_roots = ["test"]                                      # comments only; never log producers
+exclude = ["slop-rules.mjs", "vite.config.ts", "drizzle.config.ts"]   # code outside the roots that is not checked
+vendor_payloads = ["vendor/*.tgz", "vendor/*/**"]          # upstream payloads: never linted or edited
+build_outputs = ["dist/**"]                                # generated; references to these are fine
+escalation_owner = "the repository owner"                  # who answers batched escalations
+merge_authority = "owner"                                  # who lands to main (never the lead)
+branch_authority = "report"                                # report worktrees and branches; delete nothing
+
+[checks]
+required = ["docs", "comments", "logs", "schema"]          # each runs, or the run is incomplete
+
+[docs]
+roots = ["README.md", "AGENTS.md", "docs", "vendor/README.md"]
+history_exclude = ["docs/adr/**", "**/CHANGELOG.md", "docs/debt-log.md"]
+external_prefixes = []                                     # paths that cite another repository
+
+[comments]
+tracker = '#\d+|[A-Z][A-Z0-9]+-\d+|https?://'              # what makes a TODO or FIXME tracked
+markers = "warning"                                        # "error" once a labeled sample shows it is precise here
+
+[logs]
+loggers = ["telemetry"]                                    # logger object names: telemetry.info(...)
+contract = "log-contract.json"
+event_arg = 0                                              # (event, fields); pino-style is 1 and 0
+fields_arg = 1
+
+[schema]
+orm = "drizzle"                                            # drizzle | alembic
+production_dialect = "postgresql"                          # the catalog reader supports PostgreSQL
+schema_files = ["server/db/schema.ts"]                     # list every file that declares tables or shared columns
+migrations = "server/db/migrations"
+schemas = ["public"]
+casing = "none"                                            # snake_case if drizzle uses casing: "snake_case"
+require_physical_primary_key = false                       # opt in to block keyless tables
+
+[baseline]
+dir = ".slop/baseline"
+
+[baseline.reports]                                         # each report sits beside REPORT.exit, the tool's exit status
+oxlint = ".slop/reports/oxlint.json"
+knip = ".slop/reports/knip.json"
+
+[policy]
+# Compared with the protected branch's copy; any growth or edit needs the owner's signed approval.
+paths = ["cleanup.toml", ".slop/baseline", "log-contract.json", ".oxlintrc.json", "slop-rules.mjs", "knip.json", "tsconfig.json"]

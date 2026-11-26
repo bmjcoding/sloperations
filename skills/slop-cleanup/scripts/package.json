@@ -1,0 +1,15 @@
+{
+  "name": "slop-check",
+  "private": true,
+  "type": "module",
+  "description": "Parsers for slop-check, pinned exactly; install once with npm ci in this folder",
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "mdast-util-from-markdown": "2.1.0",
+    "mdast-util-gfm-table": "2.0.1",
+    "micromark-extension-gfm-table": "2.1.2",
+    "oxc-parser": "0.160.0"
+  }
+}

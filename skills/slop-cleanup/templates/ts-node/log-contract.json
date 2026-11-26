@@ -1,0 +1,5 @@
+{
+  "events": {
+    "request": { "fields": ["method", "route", "status", "ms"], "optional": ["err"] }
+  }
+}

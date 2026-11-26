@@ -1,0 +1,14 @@
+{
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Linux",
+  "typeCheckingMode": "standard",
+  "include": ["app", "tests"],
+  "exclude": ["frontend", "**/__pycache__"],
+  "reportUnusedImport": "error",
+  "reportUnusedVariable": "error",
+  "reportUnusedCoroutine": "error",
+  "reportUnnecessaryComparison": "error",
+  "reportUnnecessaryIsInstance": "error",
+  "reportUnnecessaryCast": "error",
+  "strict": []
+}

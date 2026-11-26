@@ -1,0 +1,6 @@
+import chalk from "chalk";
+export function used(x: number) { return x + 1; }
+export const unusedExport = 3;
+function dead(a: number) { const b = 2; return a; }
+// eslint-disable-next-line no-console
+console.log(chalk, used(1));

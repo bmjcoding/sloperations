@@ -1,0 +1,26 @@
+[
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'requests' imported but missing from the dependency definitions"
+        },
+        "module": "requests",
+        "location": {
+            "file": "app/mod.py",
+            "line": 2,
+            "column": 8
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'flask' defined as a dependency but not used in the codebase"
+        },
+        "module": "flask",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    }
+]

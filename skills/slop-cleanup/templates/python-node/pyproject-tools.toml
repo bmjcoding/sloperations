@@ -1,0 +1,17 @@
+# Merge these tables into the repository's pyproject.toml. pyproject.toml is a declared policy path, and
+# slop-check compares only its [tool.*] tables there, so dependency edits are not policy edits.
+
+[tool.pydoclint]
+# Checks existing docstrings against their signatures; it never requires a docstring. It runs with no
+# native baseline: slop-check compares its output with .slop/baseline/pydoclint.jsonl.
+style = "google"
+skip-checking-short-docstrings = true
+arg-type-hints-in-signature = false
+arg-type-hints-in-docstring = false
+check-return-types = false
+check-yield-types = false
+quiet = true
+
+[tool.deptry]
+known_first_party = ["app"]
+exclude = ["frontend", "migrations", "tests", ".venv"]

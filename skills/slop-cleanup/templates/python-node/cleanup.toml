@@ -1,0 +1,62 @@
+# cleanup.toml: the slop-cleanup framing file (phase 1). slop-check reads it and rejects unknown keys.
+# Every declared root must exist. Python backend (psycopg, raw SQL, Alembic) with a Node frontend.
+
+[repo]
+stacks = ["python", "ts-node"]
+source_roots = ["app", "frontend/src", "scripts"]
+test_roots = ["tests", "frontend/test"]
+exclude = ["frontend/slop-rules.mjs", "migrations/env.py", "frontend/vite.config.ts"]
+vendor_payloads = ["frontend/vendor/*.tgz", "frontend/vendor/*/**"]
+build_outputs = ["frontend/dist/**"]
+escalation_owner = "the repository owner"
+merge_authority = "owner"
+branch_authority = "report"
+
+[checks]
+required = ["docs", "comments", "logs", "schema"]
+
+[docs]
+roots = ["README.md", "AGENTS.md", "docs", "frontend/vendor/README.md"]
+history_exclude = ["docs/adr/**", "**/CHANGELOG.md", "docs/debt-log.md"]
+external_prefixes = []
+
+[comments]
+tracker = '#\d+|[A-Z][A-Z0-9]+-\d+|https?://'
+markers = "warning"
+
+[logs]
+loggers = ["log", "logger"]                                # logging.getLogger(__name__) objects
+contract = "log-contract.json"
+event_arg = 0
+fields_arg = 1
+
+[schema]
+orm = "alembic"                                            # the revision chain is the source of truth
+production_dialect = "postgresql"
+migrations = "migrations/versions"
+expected_heads = 1                                         # or a list of head ids and branch labels
+schemas = ["public"]
+require_physical_primary_key = false
+target_metadata = ""                                       # optional, e.g. "app.models:Base.metadata"
+model_packages = []                                        # optional, e.g. ["app.models"]
+
+[baseline]
+dir = ".slop/baseline"
+
+[baseline.reports]
+ruff = ".slop/reports/ruff.json"
+pyright = ".slop/reports/pyright.json"
+pydoclint = ".slop/reports/pydoclint.txt"
+deptry = ".slop/reports/deptry.json"
+
+[baseline.reports.oxlint]                                  # run from frontend/, so its paths start at frontend/
+file = ".slop/reports/oxlint.json"
+cwd = "frontend"
+
+[baseline.reports.knip]
+file = ".slop/reports/knip.json"
+cwd = "frontend"
+
+[policy]
+paths = ["cleanup.toml", ".slop/baseline", "log-contract.json", "ruff.toml", "tests/ruff.toml", "pyrightconfig.json", "pyproject.toml",
+  "frontend/.oxlintrc.json", "frontend/slop-rules.mjs", "frontend/knip.json", "frontend/tsconfig.json"]

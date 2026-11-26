@@ -1,0 +1,6 @@
+# Test-only Ruff rules: a test may not sleep unexamined. A real-time or absence wait keeps
+# `# noqa: TID251` with a comment saying why the time itself is under test.
+extend = "../ruff.toml"
+
+[lint.flake8-tidy-imports.banned-api]
+"time.sleep".msg = "wait for the condition, not the clock"

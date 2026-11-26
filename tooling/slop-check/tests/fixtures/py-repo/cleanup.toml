@@ -1,0 +1,34 @@
+# Fixture framing for the slop-check suite (Python, psycopg, Alembic migrations, no ORM models).
+[repo]
+stacks = ["python"]
+source_roots = ["app"]
+test_roots = ["tests"]
+exclude = ["migrations/env.py"]
+escalation_owner = "repository owner"
+merge_authority = "owner"
+branch_authority = "report"
+
+[checks]
+required = ["docs", "comments", "logs", "schema"]
+
+[docs]
+roots = ["README.md"]
+
+[comments]
+markers = "error"
+
+[logs]
+loggers = ["log"]
+contract = "log-contract.json"
+
+[schema]
+orm = "alembic"
+production_dialect = "postgresql"
+migrations = "migrations/versions"
+expected_heads = 1
+
+[baseline]
+dir = ".slop/baseline"
+
+[policy]
+paths = ["cleanup.toml", ".slop/baseline", "log-contract.json"]

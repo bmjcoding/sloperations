@@ -1,0 +1,8 @@
+{ "diagnostics": [{"message": "Function 'dead' is declared but never used.","code": "eslint(no-unused-vars)","severity": "error","url": "https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-unused-vars.html","help": "Consider removing this declaration.","filename": "server/lintme.ts","labels": [{"label": "'dead' is declared here","span": {"offset": 117,"length": 4,"line": 4,"column": 10}}]},
+{"message": "Variable 'b' is declared but never used. Unused variables should start with a '_'.","code": "eslint(no-unused-vars)","severity": "error","url": "https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-unused-vars.html","help": "Consider removing this declaration.","filename": "server/lintme.ts","labels": [{"label": "'b' is declared here","span": {"offset": 141,"length": 1,"line": 4,"column": 34}}]}],
+              "number_of_files": 2,
+              "number_of_rules": 96,
+              "threads_count": 16,
+              "start_time": 0.00756875
+            }
+            

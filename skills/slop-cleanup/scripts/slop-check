@@ -1,0 +1,37 @@
+#!/bin/sh
+# slop-check launcher. Finds Node >= 24 and runs the bundled checker. Its two parsers (oxc-parser,
+# mdast-util-from-markdown, the GFM table extension) are pinned in package.json and package-lock.json:
+# install them with (cd <this dir> && npm ci).
+# Python files are read by slop_check/emit_py.py through python3 (or SLOP_CHECK_PYTHON), stdlib only.
+set -u
+
+script=$0
+while [ -h "$script" ]; do
+  link=$(readlink "$script")
+  case $link in
+    /*) script=$link ;;
+    *) script=$(dirname -- "$script")/$link ;;
+  esac
+done
+here=$(CDPATH='' cd -P -- "$(dirname -- "$script")" && pwd -P) || {
+  echo "slop-check: cannot resolve launcher directory" >&2
+  exit 2
+}
+
+usable() {
+  major=$("$1" -p 'process.versions.node.split(".")[0]' 2>/dev/null) || return 1
+  [ "${major:-0}" -ge 24 ] 2>/dev/null
+}
+
+node=${SLOP_CHECK_NODE:-node}
+if ! command -v "$node" >/dev/null 2>&1 || ! usable "$node"; then
+  echo "slop-check: needs Node >= 24 (tried ${node}); install it or set SLOP_CHECK_NODE" >&2
+  exit 2
+fi
+for dep in oxc-parser mdast-util-from-markdown mdast-util-gfm-table micromark-extension-gfm-table; do
+  [ -d "$here/node_modules/$dep" ] || {
+    echo "slop-check: its pinned parsers are not installed; run: (cd \"$here\" && npm ci)" >&2
+    exit 2
+  }
+done
+exec "$node" "$here/slop_check/cli.mjs" "$@"

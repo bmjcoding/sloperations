@@ -3,3 +3,4 @@ __pycache__/
 .DS_Store
 /research.zip
 /research/code-review-field-guide.html
+node_modules/

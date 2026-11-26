@@ -1,0 +1,163 @@
+{
+  "plugins": [
+    "eslint",
+    "typescript",
+    "unicorn",
+    "react",
+    "jsx-a11y",
+    "import",
+    "oxc"
+  ],
+  "jsPlugins": [
+    {
+      "name": "jsdoc-js",
+      "specifier": "eslint-plugin-jsdoc"
+    },
+    "./slop-rules.mjs"
+  ],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "no-unused-vars": "error",
+    "no-eval": "error",
+    "no-new-func": "error",
+    "no-script-url": "error",
+    "typescript/no-implied-eval": "error",
+    "react/no-danger": "error",
+    "react/jsx-no-target-blank": "error",
+    "react/iframe-missing-sandbox": "error",
+    "unicorn/require-post-message-target-origin": "error",
+    "typescript/no-floating-promises": [
+      "error",
+      {
+        "allowForKnownSafeCalls": [
+          {
+            "from": "package",
+            "package": "node:test",
+            "name": [
+              "test",
+              "describe",
+              "it",
+              "suite",
+              "before",
+              "after",
+              "beforeEach",
+              "afterEach"
+            ]
+          }
+        ]
+      }
+    ],
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error",
+    "typescript/ban-ts-comment": [
+      "error",
+      {
+        "ts-ignore": "allow-with-description",
+        "ts-expect-error": "allow-with-description",
+        "ts-nocheck": true
+      }
+    ],
+    "typescript/no-base-to-string": "error",
+    "typescript/restrict-template-expressions": "error",
+    "typescript/no-for-in-array": "error",
+    "typescript/restrict-plus-operands": "error",
+    "typescript/switch-exhaustiveness-check": "error",
+    "typescript/unbound-method": "error",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    "jsx-a11y/anchor-is-valid": "error",
+    "jsx-a11y/click-events-have-key-events": "error",
+    "jsx-a11y/interactive-supports-focus": "error",
+    "jsx-a11y/no-noninteractive-tabindex": "error",
+    "jsx-a11y/control-has-associated-label": "error",
+    "jsx-a11y/no-autofocus": "error",
+    "jsx-a11y/no-redundant-roles": "error",
+    "jsx-a11y/no-noninteractive-element-interactions": "error",
+    "jsx-a11y/no-static-element-interactions": "error",
+    "import/no-cycle": "error",
+    "no-console": "error",
+    "no-self-compare": "error",
+    "no-constant-binary-expression": "error",
+    "no-control-regex": "error",
+    "no-unused-expressions": "error",
+    "typescript/no-unnecessary-condition": "warn",
+    "react/refs": "warn",
+    "react/purity": "warn",
+    "react/set-state-in-effect": "warn",
+    "react/immutability": "warn",
+    "slop/no-focused-test": "error",
+    "jsdoc-js/check-param-names": "error",
+    "slop/delete-needs-where": [
+      "error",
+      {
+        "drizzleObjectName": [
+          "db"
+        ]
+      }
+    ],
+    "slop/update-needs-where": [
+      "error",
+      {
+        "drizzleObjectName": [
+          "db"
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "server/**",
+        "shared/**"
+      ],
+      "rules": {
+        "typescript/no-explicit-any": "error",
+        "typescript/no-unsafe-assignment": "error",
+        "typescript/no-unsafe-member-access": "error",
+        "typescript/no-unsafe-call": "error",
+        "typescript/no-unsafe-return": "error",
+        "typescript/no-unsafe-argument": "error"
+      }
+    },
+    {
+      "files": [
+        "client/**"
+      ],
+      "rules": {
+        "typescript/no-explicit-any": "warn",
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/server/**",
+                  "**/db/**"
+                ],
+                "message": "Browser code must not import server or database modules."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "scripts/**"
+      ],
+      "rules": {
+        "no-console": [
+          "error",
+          {
+            "allow": [
+              "warn",
+              "error"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

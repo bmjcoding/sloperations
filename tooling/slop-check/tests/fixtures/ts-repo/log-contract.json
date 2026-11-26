@@ -1,0 +1,8 @@
+{
+  "events": {
+    "migrations applied": { "fields": ["count"] },
+    "migrations current": { "fields": ["count"] },
+    "request": { "fields": ["method", "route", "status", "ms"] },
+    "scribe answer": { "fields": ["model"], "optional": ["inputTokens", "outputTokens"] }
+  }
+}

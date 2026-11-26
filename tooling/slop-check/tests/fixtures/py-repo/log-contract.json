@@ -1,0 +1,6 @@
+{
+  "events": {
+    "accounts listed": { "fields": ["count"] },
+    "audit read": { "fields": ["column"] }
+  }
+}

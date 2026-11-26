@@ -1,0 +1,22 @@
+# Ruff rules for a Python backend: each code names a fault class, never a style or size preference.
+# A declared policy path; keep lint settings out of pyproject.toml so dependency edits are not policy edits.
+target-version = "py312"
+extend-exclude = ["frontend", "migrations/env.py"]
+
+[lint]
+select = [
+  "F", "E9", "B", "PLE", "PLR0124", "PLW0129",   # undefined names, unused imports, bugbear, pointless comparisons
+  "E722", "BLE001", "S110",                      # swallowed exceptions
+  "ARG",                                         # dead parameters
+  "RUF006", "ASYNC",                             # dropped tasks, blocking calls in async code
+  "RUF100", "PGH003", "PGH004",                  # unused or blanket noqa and type: ignore
+  "T20", "LOG", "G",                             # print and logging misuse; never add UP032 autofix next to G
+  "TID251",                                      # banned APIs (tests/ruff.toml bans time.sleep in tests)
+]
+# Replace with the repository's own logger objects (module path, then name).
+logger-objects = ["app.log.log"]
+
+[lint.per-file-ignores]
+"tests/**" = ["ARG"]
+"scripts/**" = ["T20"]
+"migrations/**" = ["ARG"]

@@ -1,0 +1,6 @@
+{
+  "entry": ["server/main.ts", "client/main.tsx", "scripts/*.ts", "test/**/*.test.ts"],
+  "project": ["server/**/*.ts", "client/**/*.{ts,tsx}", "shared/**/*.ts", "scripts/**/*.ts", "test/**/*.ts"],
+  "ignore": ["vendor/**", "dist/**"],
+  "ignoreDependencies": []
+}

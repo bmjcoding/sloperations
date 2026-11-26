@@ -1,0 +1,37 @@
+# Fixture framing for the slop-check suite (TypeScript and Drizzle).
+[repo]
+stacks = ["ts-node"]
+source_roots = ["server", "client", "shared"]
+test_roots = ["test"]
+vendor_payloads = ["vendor/*.tgz", "vendor/ui-kit/**"]
+build_outputs = ["dist/**"]
+escalation_owner = "repository owner"
+merge_authority = "owner"
+branch_authority = "report"
+
+[checks]
+required = ["docs", "comments", "logs", "schema"]
+
+[docs]
+roots = ["README.md", "AGENTS.md", "docs", "vendor/README.md"]
+history_exclude = ["docs/adr/**", "CHANGELOG.md"]
+external_prefixes = [".review/council/"]
+
+[comments]
+markers = "error"
+
+[logs]
+loggers = ["telemetry"]
+contract = "log-contract.json"
+
+[schema]
+orm = "drizzle"
+production_dialect = "postgresql"
+schema_files = ["server/db/schema.ts"]
+migrations = "server/db/migrations"
+
+[baseline]
+dir = ".slop/baseline"
+
+[policy]
+paths = ["cleanup.toml", ".slop/baseline", "log-contract.json", ".oxlintrc.json"]

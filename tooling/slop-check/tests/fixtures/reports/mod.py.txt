@@ -1,0 +1,15 @@
+import os
+import requests
+
+
+def add(a, b):
+    """Add numbers.
+
+    Args:
+        a: first
+        c: second
+    """
+    try:
+        return a + b
+    except:
+        pass

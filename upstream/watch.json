@@ -12,5 +12,99 @@
       "docs/help/testing/boundary-scenarios.md",
       "docs/help/testing/fixtures.md"
     ]
+  },
+  {
+    "name": "codebase-design-pocock",
+    "repo": "mattpocock/skills",
+    "branch": "main",
+    "pin": "bbadaa631c37af594e5a05c9cefacd9956136b18",
+    "local": "skills/codebase-design",
+    "paths": [
+      "skills/engineering/codebase-design",
+      "skills/engineering/improve-codebase-architecture",
+      "skills/in-progress/setup-ts-deep-modules"
+    ]
+  },
+  {
+    "name": "codebase-design-caldo",
+    "repo": "caldoai/skills",
+    "branch": "main",
+    "pin": "d5b68dace378219890d821adb3685538e2c69b04",
+    "local": "skills/codebase-design",
+    "paths": [
+      "skills/untangle-codebase"
+    ]
+  },
+  {
+    "name": "codebase-design-pstack",
+    "repo": "cursor/plugins",
+    "branch": "main",
+    "pin": "b7b93c36be9bcc36a74db438e0fd385d660bc559",
+    "local": "skills/codebase-design",
+    "paths": [
+      "pstack/skills/principle-separate-before-serializing-shared-state",
+      "pstack/skills/principle-make-operations-idempotent"
+    ]
+  },
+  {
+    "name": "domain-modeling",
+    "repo": "mattpocock/skills",
+    "branch": "main",
+    "pin": "bbadaa631c37af594e5a05c9cefacd9956136b18",
+    "local": "skills/domain-modeling",
+    "paths": [
+      "skills/engineering/domain-modeling"
+    ]
+  },
+  {
+    "name": "grilling",
+    "repo": "mattpocock/skills",
+    "branch": "main",
+    "pin": "bbadaa631c37af594e5a05c9cefacd9956136b18",
+    "local": "skills/grilling",
+    "paths": [
+      "skills/productivity/grilling"
+    ]
+  },
+  {
+    "name": "research-pocock",
+    "repo": "mattpocock/skills",
+    "branch": "main",
+    "pin": "bbadaa631c37af594e5a05c9cefacd9956136b18",
+    "local": "skills/research",
+    "paths": [
+      "skills/engineering/research"
+    ]
+  },
+  {
+    "name": "research-pstack",
+    "repo": "cursor/plugins",
+    "branch": "main",
+    "pin": "b7b93c36be9bcc36a74db438e0fd385d660bc559",
+    "local": "skills/research",
+    "paths": [
+      "pstack/skills/why"
+    ]
+  },
+  {
+    "name": "unslop-pstack",
+    "repo": "cursor/plugins",
+    "branch": "main",
+    "pin": "b7b93c36be9bcc36a74db438e0fd385d660bc559",
+    "local": "skills/unslop",
+    "paths": [
+      "pstack/skills/unslop"
+    ]
+  },
+  {
+    "name": "unslop-pocock",
+    "repo": "mattpocock/skills",
+    "branch": "main",
+    "pin": "bbadaa631c37af594e5a05c9cefacd9956136b18",
+    "local": "skills/unslop",
+    "paths": [
+      "skills/in-progress/writing-beats",
+      "skills/in-progress/writing-shape"
+    ]
   }
 ]

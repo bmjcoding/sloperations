@@ -13,7 +13,7 @@ pinned parsers, and the Python 3.9+ standard library for `.py` files). Composes,
 - `codebase-design`: the deletion test and seams for fragmented or shallow modules.
 - `domain-modeling`: canonical facts and the glossary (`CONTEXT.md`) for naming, redundant columns
   and log field names.
-- `improve-codebase-architecture`: structural candidates. The cleanup reports them and does not
+- `codebase-design` architecture review: structural candidates. The cleanup reports them and does not
   fix them.
 
 References: [evidence](references/evidence.md) · [data model](references/data-model.md) ·
